@@ -2,8 +2,8 @@
  * SQLite database access layer for the ACM (Autoriteit Consument en Markt) MCP server.
  *
  * Schema:
- *   - decisions    — Bundeskartellamt enforcement decisions (abuse of dominance, cartels, sector inquiries)
- *   - mergers      — Merger control decisions (Fusionskontrolle)
+ *   - decisions    — ACM enforcement decisions (abuse of dominance, cartels, sector inquiries)
+ *   - mergers      — Merger control decisions
  *   - sectors      — Sectors with enforcement activity
  *
  * FTS5 virtual tables back full-text search on decisions and mergers.
@@ -277,4 +277,22 @@ export function listSectors(): Sector[] {
   return db
     .prepare("SELECT * FROM sectors ORDER BY decision_count DESC, merger_count DESC")
     .all() as Sector[];
+}
+
+// --- Stats query --------------------------------------------------------------
+
+export interface DbStats {
+  decisions: number;
+  mergers: number;
+  sectors: number;
+  last_ingested: string | null;
+}
+
+export function getDbStats(): DbStats {
+  const db = getDb();
+  const decisions = (db.prepare("SELECT COUNT(*) as n FROM decisions").get() as { n: number }).n;
+  const mergers = (db.prepare("SELECT COUNT(*) as n FROM mergers").get() as { n: number }).n;
+  const sectors = (db.prepare("SELECT COUNT(*) as n FROM sectors").get() as { n: number }).n;
+  const lastRow = db.prepare("SELECT MAX(date) as d FROM decisions").get() as { d: string | null };
+  return { decisions, mergers, sectors, last_ingested: lastRow.d ?? null };
 }
