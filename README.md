@@ -4,9 +4,9 @@
 
 [![npm version](https://badge.fury.io/js/%40ansvar%2Fdutch-competition-mcp.svg)](https://www.npmjs.com/package/@ansvar/dutch-competition-mcp)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI](https://github.com/Ansvar-Systems/dutch-competition-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Ansvar-Systems/dutch-competition-mcp/actions/workflows/ci.yml)
+[![Build](https://github.com/Ansvar-Systems/dutch-competition-mcp/actions/workflows/ghcr-build.yml/badge.svg)](https://github.com/Ansvar-Systems/dutch-competition-mcp/actions/workflows/ghcr-build.yml)
 
-Query Dutch competition data -- regulations, decisions, and requirements from ACM (Autoriteit Consument {{AUTHORITY}} Markt) -- directly from Claude, Cursor, or any MCP-compatible client.
+Query Dutch competition data -- regulations, decisions, and requirements from ACM (Autoriteit Consument en Markt) -- directly from Claude, Cursor, or any MCP-compatible client.
 
 Built by [Ansvar Systems](https://ansvar.eu) -- Stockholm, Sweden
 
@@ -109,7 +109,7 @@ All tools return structured data with source references and timestamps.
 
 All content is sourced from official Dutch regulatory publications:
 
-- **ACM (Autoriteit Consument {{AUTHORITY}} Markt)** -- Official regulatory authority
+- **ACM (Autoriteit Consument en Markt)** -- Official regulatory authority
 
 ### Data Currency
 
@@ -145,7 +145,7 @@ See [SECURITY.md](SECURITY.md) for the full policy and vulnerability reporting.
 
 > **THIS TOOL IS NOT REGULATORY OR LEGAL ADVICE**
 >
-> Regulatory data is sourced from official publications by ACM (Autoriteit Consument {{AUTHORITY}} Markt). However:
+> Regulatory data is sourced from official publications by ACM (Autoriteit Consument en Markt). However:
 > - This is a **research tool**, not a substitute for professional regulatory counsel
 > - **Verify all references** against primary sources before making compliance decisions
 > - **Coverage may be incomplete** -- do not rely solely on this for regulatory research
@@ -180,8 +180,8 @@ npx @anthropic/mcp-inspector node dist/index.js   # Test with MCP Inspector
 ### Data Management
 
 ```bash
-npm run build:db       # Rebuild SQLite database from seed data
-npm run check-updates  # Check for new regulatory data
+npm run seed           # Seed SQLite database with sample data
+npm run ingest         # Ingest latest regulatory data from ACM
 ```
 
 ---
