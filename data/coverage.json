@@ -1,0 +1,28 @@
+{
+  "authority": "ACM (Autoriteit Consument en Markt)",
+  "jurisdiction": "Netherlands",
+  "source_url": "https://www.acm.nl/",
+  "last_updated": null,
+  "corpus": {
+    "decisions": {
+      "count": null,
+      "date_from": null,
+      "date_to": null,
+      "types": ["abuse_of_dominance", "cartel", "sector_inquiry"]
+    },
+    "mergers": {
+      "count": null,
+      "date_from": null,
+      "date_to": null,
+      "outcomes": ["cleared", "cleared_phase1", "cleared_with_conditions", "prohibited"]
+    },
+    "sectors": {
+      "count": null
+    }
+  },
+  "known_gaps": [
+    "Decisions only available as press releases (no full PDF) may be omitted",
+    "Confidential/non-public decision versions are not included"
+  ],
+  "note": "Counts are updated at ingest time. Run `npm run ingest` to refresh."
+}
