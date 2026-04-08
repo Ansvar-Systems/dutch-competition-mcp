@@ -29,6 +29,7 @@ import {
   searchMergers,
   getMerger,
   listSectors,
+  getDbStats,
 } from "./db.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,11 +54,11 @@ const TOOLS = [
   {
     name: "nl_comp_search_decisions",
     description:
-      "Full-text search across ACM enforcement decisions (abuse of dominance, cartel, sector inquiries). Returns matching decisions with case number, parties, outcome, fine amount, and GWB articles cited.",
+      "Full-text search across ACM enforcement decisions (abuse of dominance, cartel, sector inquiries). Returns matching decisions with case number, parties, outcome, fine amount, and Mw articles cited.",
     inputSchema: {
       type: "object" as const,
       properties: {
-        query: { type: "string", description: "Search query (e.g., 'Marktmissbrauch', 'Facebook', 'Preisabsprache')" },
+        query: { type: "string", description: "Search query (e.g., 'kartelafspraken', 'misbruik van machtspositie', 'ACM')" },
         type: {
           type: "string",
           enum: ["abuse_of_dominance", "cartel", "merger", "sector_inquiry"],
@@ -77,11 +78,11 @@ const TOOLS = [
   {
     name: "nl_comp_get_decision",
     description:
-      "Get a specific Bundeskartellamt decision by case number (e.g., 'B6-22/16').",
+      "Get a specific ACM decision by case number (e.g., 'ACM/17/028447').",
     inputSchema: {
       type: "object" as const,
       properties: {
-        case_number: { type: "string", description: "Case number (e.g., 'B6-22/16', 'B2-94/12')" },
+        case_number: { type: "string", description: "Case number (e.g., 'ACM/17/028447', 'ACM/19/033251')" },
       },
       required: ["case_number"],
     },
@@ -93,7 +94,7 @@ const TOOLS = [
     inputSchema: {
       type: "object" as const,
       properties: {
-        query: { type: "string", description: "Search query (e.g., 'Vonovia', 'Energieversorgung')" },
+        query: { type: "string", description: "Search query (e.g., 'telecom', 'energie', 'retail')" },
         sector: { type: "string", description: "Filter by sector ID. Optional." },
         outcome: {
           type: "string",
@@ -108,11 +109,11 @@ const TOOLS = [
   {
     name: "nl_comp_get_merger",
     description:
-      "Get a specific merger control decision by case number (e.g., 'B1-35/21').",
+      "Get a specific ACM merger control decision by case number (e.g., 'M.7000').",
     inputSchema: {
       type: "object" as const,
       properties: {
-        case_number: { type: "string", description: "Merger case number (e.g., 'B1-35/21')" },
+        case_number: { type: "string", description: "Merger case number (e.g., 'M.7000', 'ACM/17/028447')" },
       },
       required: ["case_number"],
     },
@@ -127,6 +128,18 @@ const TOOLS = [
     name: "nl_comp_about",
     description:
       "Return metadata about this MCP server: version, data source, coverage, and tool list.",
+    inputSchema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "nl_comp_list_sources",
+    description:
+      "List all data sources used by this server with provenance metadata: source name, URL, last_ingested date, scope, and license.",
+    inputSchema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "nl_comp_check_data_freshness",
+    description:
+      "Check data freshness: returns staleness status of the SQLite database, last ingest timestamp, and record counts.",
     inputSchema: { type: "object" as const, properties: {}, required: [] },
   },
 ];
@@ -171,9 +184,19 @@ function createMcpServer(): Server {
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args = {} } = request.params;
 
+    const _meta = {
+      disclaimer: "Data sourced from official ACM publications. Not legal advice — verify against primary sources.",
+      copyright: "© Autoriteit Consument en Markt (ACM). Data used for research purposes.",
+      source_url: "https://www.acm.nl/",
+      data_age: "Periodic updates; may lag official publications.",
+    };
+
     function textContent(data: unknown) {
+      const payload = typeof data === "object" && data !== null
+        ? { ...(data as Record<string, unknown>), _meta }
+        : { data, _meta };
       return {
-        content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
       };
     }
 
@@ -240,6 +263,40 @@ function createMcpServer(): Server {
               "ACM (Autoriteit Consument en Markt) MCP server. Provides access to Dutch competition law enforcement decisions and merger control cases.",
             data_source: "ACM (https://www.acm.nl/)",
             tools: TOOLS.map((t) => ({ name: t.name, description: t.description })),
+          });
+        }
+
+        case "nl_comp_list_sources": {
+          return textContent({
+            sources: [
+              {
+                name: "ACM (Autoriteit Consument en Markt)",
+                url: "https://www.acm.nl/",
+                scope: "Dutch competition law enforcement decisions, merger control cases, sector inquiries",
+                license: "Public domain — official government publications",
+                last_ingested: null,
+              },
+            ],
+          });
+        }
+
+        case "nl_comp_check_data_freshness": {
+          const stats = getDbStats();
+          const staleDays = 30;
+          const status = stats.last_ingested
+            ? Math.floor((Date.now() - new Date(stats.last_ingested).getTime()) / 86_400_000) > staleDays
+              ? "stale"
+              : "fresh"
+            : "unknown";
+          return textContent({
+            status,
+            last_ingested: stats.last_ingested,
+            record_counts: {
+              decisions: stats.decisions,
+              mergers: stats.mergers,
+              sectors: stats.sectors,
+            },
+            stale_threshold_days: staleDays,
           });
         }
 
