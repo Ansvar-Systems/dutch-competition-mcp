@@ -25,6 +25,7 @@ import {
   searchMergers,
   getMerger,
   listSectors,
+  getDbStats,
 } from "./db.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,7 +49,7 @@ const TOOLS = [
   {
     name: "nl_comp_search_decisions",
     description:
-      "Full-text search across ACM enforcement decisions (abuse of dominance, cartel, sector inquiries). Returns matching decisions with case number, parties, outcome, fine amount, and GWB articles cited.",
+      "Full-text search across ACM enforcement decisions (abuse of dominance, cartel, sector inquiries). Returns matching decisions with case number, parties, outcome, fine amount, and Mw articles cited.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -156,6 +157,26 @@ const TOOLS = [
       required: [],
     },
   },
+  {
+    name: "nl_comp_list_sources",
+    description:
+      "List all data sources used by this server with provenance metadata: source name, URL, last_ingested date, scope, and license.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "nl_comp_check_data_freshness",
+    description:
+      "Check data freshness: returns staleness status of the SQLite database, last ingest timestamp, and record counts.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // --- Zod schemas for argument validation --------------------------------------
@@ -185,10 +206,20 @@ const GetMergerArgs = z.object({
 
 // --- Helper ------------------------------------------------------------------
 
+const _meta = {
+  disclaimer: "Data sourced from official ACM publications. Not legal advice — verify against primary sources.",
+  copyright: "© Autoriteit Consument en Markt (ACM). Data used for research purposes.",
+  source_url: "https://www.acm.nl/",
+  data_age: "Periodic updates; may lag official publications.",
+};
+
 function textContent(data: unknown) {
+  const payload = typeof data === "object" && data !== null
+    ? { ...(data as Record<string, unknown>), _meta }
+    : { data, _meta };
   return {
     content: [
-      { type: "text" as const, text: JSON.stringify(data, null, 2) },
+      { type: "text" as const, text: JSON.stringify(payload, null, 2) },
     ],
   };
 }
@@ -275,6 +306,40 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             sectors: "digitaal, energie, retail, automotive, financiele diensten, zorg, media, telecommunicatie",
           },
           tools: TOOLS.map((t) => ({ name: t.name, description: t.description })),
+        });
+      }
+
+      case "nl_comp_list_sources": {
+        return textContent({
+          sources: [
+            {
+              name: "ACM (Autoriteit Consument en Markt)",
+              url: "https://www.acm.nl/",
+              scope: "Dutch competition law enforcement decisions, merger control cases, sector inquiries",
+              license: "Public domain — official government publications",
+              last_ingested: null,
+            },
+          ],
+        });
+      }
+
+      case "nl_comp_check_data_freshness": {
+        const stats = getDbStats();
+        const staleDays = 30;
+        const status = stats.last_ingested
+          ? Math.floor((Date.now() - new Date(stats.last_ingested).getTime()) / 86_400_000) > staleDays
+            ? "stale"
+            : "fresh"
+          : "unknown";
+        return textContent({
+          status,
+          last_ingested: stats.last_ingested,
+          record_counts: {
+            decisions: stats.decisions,
+            mergers: stats.mergers,
+            sectors: stats.sectors,
+          },
+          stale_threshold_days: staleDays,
         });
       }
 
