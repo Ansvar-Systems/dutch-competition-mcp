@@ -1,0 +1,71 @@
+# sources.yml — data provenance contract for dutch-competition-mcp.
+#
+# Status: AMBER as of 2026-05-16. ACM (Autoriteit Consument & Markt) is the sole
+# upstream and is publicly serving here under Wet hergebruik overheidsinformatie
+# applicability, pending direct verification of the acm.nl license page (audit
+# network egress could not reach acm.nl on 2026-05-16).
+
+schema_version: "1.0"
+mcp_name: "Dutch Competition MCP"
+category: "regulation"
+jurisdiction: "Netherlands"
+
+sources:
+  - name: "ACM (Autoriteit Consument & Markt)"
+    authority: "Authority for Consumers & Markets (ZBO; Mededingingswet competent authority)"
+    official_url: "https://www.acm.nl"
+    retrieval_method: "AUTOMATED"
+    retrieval_script: "scripts/ingest-acm.ts"
+    format:
+      - "HTML"        # sitemap-driven crawl
+    authentication: "none"
+    update_frequency: "weekly"
+    license:
+      spdx: "Unverified-Who-applies"
+      type: "Wet hergebruik overheidsinformatie default (Rijksoverheid ZBO), on-site notice unverified"
+      url: "https://web.archive.org/web/2026/acm.nl"   # placeholder pending direct re-verification
+      summary: >-
+        Source-authority audit on 2026-05-16 could not reach acm.nl (repeated 60s
+        timeouts on five candidate paths from the audit network egress). Re-verify
+        needed from a different network. ACM is a Rijksoverheid ZBO so Wet hergebruik
+        overheidsinformatie applies on top of whatever the on-site notice says;
+        likely CC0 by Rijksoverheid default per ncsc.nl + sodm.nl precedent. Largest
+        sector corpus in the Dutch fleet (2,477 decisions + 666 mergers per 2026-05-16
+        audit) so highest exposure if the licensing turns out non-permissive.
+    legal_basis:
+      - "Wet hergebruik overheidsinformatie (Who) — ACM is a Rijksoverheid ZBO, public-task content"
+      - "Pending: direct verification of acm.nl/copyright (or equivalent) license page"
+    verification:
+      registry_status: "under_review"
+      registry_entry: "infrastructure/policy/source-authority-registry.yml (host: acm.nl)"
+      at_risk_entry: "infrastructure/policy/at-risk-mcps.yml (repo_name: dutch-competition-mcp, audit_class: AMBER)"
+      last_verified_at: "2026-05-16"
+      verified_by: "claude-dutch-licensing-audit-2026-05-16"
+    coverage:
+      scope: >-
+        ACM concentratiebesluiten (merger control decisions), boetebesluiten /
+        kartelzaken (antitrust enforcement), abuse-of-dominance decisions,
+        sector inquiries. Mededingingswet statute is in dutch-law-mcp.
+        Pending: CBb energy/competition appeals (often refines or overturns
+        ACM decisions); ACM informele zienswijzen / leniency notices.
+      item_count_decisions: 2477
+      item_count_mergers: 666
+    languages:
+      - "nl"
+    carve_outs:
+      - "ACM logo and visual identity are trademarked and never ingested"
+
+# Source-attribution contract enforced at response time:
+#   Every search/get tool response item carries _citation.{publisher, license, source_url}
+#   matching the values declared above. License string Unverified-Who-applies signals to
+#   the gateway that this is AMBER pending direct acm.nl verification.
+#
+# Per-item source_url accuracy is a known gap as of 2026-05-16: the current DB schema does
+# not capture per-item URLs during ingestion. Responses fall back to publisher base URL
+# https://www.acm.nl/. Closing this requires DB schema + ingest script update + re-run.
+
+# Future-expansion sources (not currently ingested):
+expansion_candidates:
+  - host: "uitspraken.rechtspraak.nl"
+    authority: "CBb (College van Beroep voor het bedrijfsleven) — appeals against ACM decisions"
+    relevance: "CBb appeals often refine or overturn ACM decisions; MEDIUM-severity gap per audit"
